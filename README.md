@@ -5,6 +5,7 @@ A comprehensive web-based tool for tracking job applications with AI-powered job
 ![Job Tracker Screenshot](https://via.placeholder.com/800x400/4285f4/ffffff?text=Job+Application+Tracker)
 
 git clone https://github.com/lbwalton/ai-job-tracker.git
+Live Demo: https://lbwalton.github.io/ai-job-tracker/job_tracker_app.html
 
 ## Features
 

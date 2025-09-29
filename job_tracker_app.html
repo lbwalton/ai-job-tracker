@@ -50,19 +50,102 @@
             padding: 30px;
         }
         
+        .configuration-accordion {
+            margin-bottom: 30px;
+        }
+
+        .accordion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .accordion-arrow {
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-arrow.rotated {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .accordion-content.expanded {
+            max-height: 800px;
+            padding: 20px;
+        }
+
         .setup-section {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
-        
-        .setup-section h3 {
+
+        .setup-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .setup-section h4 {
             color: #856404;
             margin-bottom: 15px;
+            margin-top: 0;
         }
-        
+
+        .footer {
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .footer-content {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+        }
+
+        .footer-content a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .footer-content a:hover {
+            color: #ffd700;
+            text-decoration: underline;
+        }
+
         .input-section {
             background: #f8f9fa;
             border-radius: 12px;
@@ -611,41 +694,49 @@
         </div>
         
         <div class="main-content">
-            <div class="setup-section">
-                <h3>API Configuration</h3>
-                <div class="form-group">
-                    <label for="openaiKey">OpenAI API Key</label>
-                    <input type="password" id="openaiKey" placeholder="sk-..." 
-                           title="Get this from platform.openai.com/api-keys">
+            <div class="configuration-accordion">
+                <div class="accordion-header" onclick="toggleAccordion()">
+                    <h3>⚙️ Configuration & Setup</h3>
+                    <span class="accordion-arrow">▼</span>
                 </div>
-                <small>Your API key is stored locally and never sent anywhere except to OpenAI</small>
-            </div>
-            
-            <div class="setup-section">
-                <h3>Gmail Integration</h3>
-                <div class="form-group">
-                    <label for="googleClientId">Google Client ID</label>
-                    <input type="text" id="googleClientId" placeholder="xxxxx.apps.googleusercontent.com" 
-                           title="Get this from Google Cloud Console">
-                    <small>
-                        <strong>Setup Instructions:</strong><br>
-                        1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
-                        2. Create a new project or select existing one<br>
-                        3. Enable Gmail API (APIs & Services → Library → Search "Gmail API")<br>
-                        4. Create OAuth 2.0 credentials (APIs & Services → Credentials → Create Credentials)<br>
-                        5. Add your domain to authorized origins (e.g., http://localhost:8000)<br>
-                        6. Copy the Client ID and paste it above
-                    </small>
-                </div>
-                <div class="form-group" style="margin-top: 15px;">
-                    <div id="gmailStatus" style="margin-bottom: 15px;">
-                        <span id="gmailStatusText">Gmail: Not Connected</span>
+                <div class="accordion-content" id="configAccordion">
+                    <div class="setup-section">
+                        <h4>API Configuration</h4>
+                        <div class="form-group">
+                            <label for="openaiKey">OpenAI API Key</label>
+                            <input type="password" id="openaiKey" placeholder="sk-..."
+                                   title="Get this from platform.openai.com/api-keys">
+                        </div>
+                        <small>Your API key is stored locally and never sent anywhere except to OpenAI</small>
                     </div>
-                    <button id="gmailConnectBtn" class="btn" onclick="connectGmail()" style="margin-right: 10px;">Connect Gmail</button>
-                    <button id="gmailDisconnectBtn" class="btn" onclick="disconnectGmail()" style="display: none; background: #dc3545;">Disconnect</button>
-                    <button id="gmailSyncBtn" class="btn" onclick="syncGmail()" style="display: none; background: #28a745; margin-left: 10px;">Sync Emails</button>
+
+                    <div class="setup-section">
+                        <h4>Gmail Integration</h4>
+                        <div class="form-group">
+                            <label for="googleClientId">Google Client ID</label>
+                            <input type="text" id="googleClientId" placeholder="xxxxx.apps.googleusercontent.com"
+                                   title="Get this from Google Cloud Console">
+                            <small>
+                                <strong>Setup Instructions:</strong><br>
+                                1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
+                                2. Create a new project or select existing one<br>
+                                3. Enable Gmail API (APIs & Services → Library → Search "Gmail API")<br>
+                                4. Create OAuth 2.0 credentials (APIs & Services → Credentials → Create Credentials)<br>
+                                5. Add your domain to authorized origins (e.g., http://localhost:8000)<br>
+                                6. Copy the Client ID and paste it above
+                            </small>
+                        </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <div id="gmailStatus" style="margin-bottom: 15px;">
+                                <span id="gmailStatusText">Gmail: Not Connected</span>
+                            </div>
+                            <button id="gmailConnectBtn" class="btn" onclick="connectGmail()" style="margin-right: 10px;">Connect Gmail</button>
+                            <button id="gmailDisconnectBtn" class="btn" onclick="disconnectGmail()" style="display: none; background: #dc3545;">Disconnect</button>
+                            <button id="gmailSyncBtn" class="btn" onclick="syncGmail()" style="display: none; background: #28a745; margin-left: 10px;">Sync Emails</button>
+                        </div>
+                        <small>Gmail integration creates organized labels: <strong>job_tracker_app</strong> → <strong>@domain.com</strong> for easy email management</small>
+                    </div>
                 </div>
-                <small>Gmail integration creates organized labels: <strong>job_tracker_app</strong> → <strong>@domain.com</strong> for easy email management</small>
             </div>
             
             <div class="input-section">
@@ -924,7 +1015,20 @@ Microsoft,Product Manager,Remote,2024-01-10,Interview</pre>
         let filteredJobs = [];
         
         // Initialize the app - removed duplicate listener
-        
+
+        function toggleAccordion() {
+            const accordionContent = document.getElementById('configAccordion');
+            const arrow = document.querySelector('.accordion-arrow');
+
+            if (accordionContent.classList.contains('expanded')) {
+                accordionContent.classList.remove('expanded');
+                arrow.classList.remove('rotated');
+            } else {
+                accordionContent.classList.add('expanded');
+                arrow.classList.add('rotated');
+            }
+        }
+
         function loadSettings() {
             const savedApiKey = localStorage.getItem('openaiApiKey');
             if (savedApiKey) {
@@ -4149,5 +4253,11 @@ Only return valid JSON, no additional text.`;
             </div>
         </div>
     </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            Made with love ❤️ by <a href="https://x.com/lbwalton" target="_blank" rel="noopener noreferrer">LB</a>
+        </div>
+    </footer>
 </body>
 </html>

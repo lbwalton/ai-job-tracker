@@ -2,7 +2,7 @@
 
 A comprehensive web-based tool for tracking job applications with AI-powered job posting analysis, bulk operations, and advanced filtering capabilities.
 
-![Job Tracker Screenshot](https://via.placeholder.com/800x400/4285f4/ffffff?text=Job+Application+Tracker)
+![Job Tracker Screenshot](https://drive.google.com/file/d/1BNylLW5S4qE54a9vKp1yaJZ7dupCp-9m/view?usp=sharing)
 
 ## Features
 

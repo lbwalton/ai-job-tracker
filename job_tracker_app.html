@@ -721,16 +721,18 @@
                                 1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
                                 2. Create a new project or select existing one<br>
                                 3. Enable Gmail API (APIs & Services → Library → Search "Gmail API")<br>
-                                4. Create OAuth 2.0 credentials (APIs & Services → Credentials → Create Credentials)<br>
-                                5. Add your domain to authorized origins (e.g., http://localhost:8000)<br>
-                                6. Copy the Client ID and paste it above
+                                4. Create OAuth 2.0 credentials (APIs & Services → Credentials → Create Credentials → OAuth Client ID)<br>
+                                5. Choose "Web application" as application type<br>
+                                6. Add authorized JavaScript origins: <code>http://localhost:8080</code><br>
+                                7. Add authorized redirect URIs: <code>http://localhost:8080/job_tracker_app.html</code><br>
+                                8. Copy the Client ID and paste it above
                             </small>
                         </div>
                         <div class="form-group" style="margin-top: 15px;">
                             <div id="gmailStatus" style="margin-bottom: 15px;">
                                 <span id="gmailStatusText">Gmail: Not Connected</span>
                             </div>
-                            <button id="gmailConnectBtn" class="btn" onclick="connectGmail()" style="margin-right: 10px;">Connect Gmail</button>
+                            <button id="gmailConnectBtn" class="btn" onclick="console.log('Gmail button clicked!'); connectGmail()" style="margin-right: 10px;">Connect Gmail</button>
                             <button id="gmailDisconnectBtn" class="btn" onclick="disconnectGmail()" style="display: none; background: #dc3545;">Disconnect</button>
                             <button id="gmailSyncBtn" class="btn" onclick="syncGmail()" style="display: none; background: #28a745; margin-left: 10px;">Sync Emails</button>
                         </div>
@@ -824,6 +826,23 @@
                         <input type="file" id="importFile" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event)">
                         <small style="color: #666; display: block; margin-top: 5px;">
                             Supported formats: CSV (.csv), Excel (.xlsx, .xls)
+                        </small>
+                    </div>
+
+                    <div class="form-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                        <label>Data Backup & Restore</label>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" onclick="exportJobData()" class="btn" style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                                Export Backup
+                            </button>
+                            <label for="importBackup" class="btn" style="background: #17a2b8; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; display: inline-block;">
+                                Import Backup
+                                <input type="file" id="importBackup" accept=".json" onchange="importJobData(event)" style="display: none;">
+                            </label>
+                        </div>
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            Export: Download a backup file of all your job data<br>
+                            Import: Restore from a previously exported backup file
                         </small>
                     </div>
                     
@@ -2811,11 +2830,16 @@ Only return valid JSON, no additional text.`;
         
         // Add event listeners for real-time filtering
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DOM CONTENT LOADED - MAIN INIT ===');
             loadSettings();
             loadColumnSettings();
             initializeChronoIdSystem();
             updateJobsTable();
             initializeGmail();
+
+            // Enhanced persistence initialization
+            loadDataSafely();
+            startAutoSave();
             
             // Add real-time search and filter listeners
             const searchInput = document.getElementById('searchInput');
@@ -3588,12 +3612,25 @@ Only return valid JSON, no additional text.`;
         }
         
         async function connectGmail() {
+            console.log('=== CONNECT GMAIL BUTTON CLICKED ===');
+
             const clientId = document.getElementById('googleClientId').value.trim();
-            
+            console.log('Client ID:', clientId);
+
             if (!clientId) {
+                console.log('No client ID provided');
                 showStatus('Please enter your Google Client ID first', 'error');
                 return;
             }
+
+            // Check if running on localhost server
+            if (window.location.protocol === 'file:') {
+                console.log('Running on file:// protocol');
+                showStatus('Gmail integration requires the local server. Please run start_job_tracker.sh and access via http://localhost:8080/job_tracker_app.html', 'error');
+                return;
+            }
+
+            console.log('Protocol check passed, continuing with Gmail connection...');
             
             try {
                 console.log('Starting Gmail connection process...');
@@ -3604,24 +3641,32 @@ Only return valid JSON, no additional text.`;
                 console.log('Waiting for Google APIs...');
                 await waitForGoogleAPIs();
                 console.log('Google APIs loaded successfully');
-                
+
                 showStatus('Connecting to Gmail...', 'loading');
-                
-                // Use the Google OAuth 2.0 flow
+
+                console.log('Creating OAuth token client...');
+                // Use the Google OAuth 2.0 flow with popup
                 const tokenClient = google.accounts.oauth2.initTokenClient({
                     client_id: clientId,
                     scope: GMAIL_SCOPE,
+                    ux_mode: 'popup',
                     callback: async (response) => {
                         if (response.error) {
                             console.error('OAuth error:', response);
-                            showStatus('Failed to connect to Gmail. Please check your Client ID and try again.', 'error');
+                            if (response.error === 'popup_closed_by_user') {
+                                showStatus('Gmail connection cancelled by user', 'warning');
+                            } else if (response.error === 'invalid_request') {
+                                showStatus('OAuth configuration error. Make sure you added http://localhost:8080 to authorized origins in Google Cloud Console.', 'error');
+                            } else {
+                                showStatus(`Gmail connection failed: ${response.error}. Check your Client ID and OAuth setup.`, 'error');
+                            }
                             return;
                         }
-                        
+
                         gmailAccessToken = response.access_token;
                         localStorage.setItem('gmailAccessToken', gmailAccessToken);
                         isGmailConnected = true;
-                        
+
                         // Initialize Gmail client and set the access token
                         try {
                             console.log('Initializing Gmail client after OAuth...');
@@ -3641,7 +3686,10 @@ Only return valid JSON, no additional text.`;
                         }
                     }
                 });
-                
+
+                console.log('TokenClient created successfully:', tokenClient);
+                console.log('Requesting access token...');
+
                 // Request access token
                 tokenClient.requestAccessToken();
                 
@@ -4232,6 +4280,129 @@ Only return valid JSON, no additional text.`;
         function closeEmailPreview() {
             document.getElementById('emailPreviewModal').style.display = 'none';
         }
+
+        // Enhanced Data Persistence Functions
+        // Store original localStorage.setItem before overriding
+        const originalSetItem = localStorage.setItem;
+
+        function saveDataSafely() {
+            try {
+                const dataToSave = {
+                    jobs: savedJobs,
+                    timestamp: new Date().toISOString(),
+                    version: '1.0'
+                };
+                // Use original localStorage.setItem to avoid recursion
+                originalSetItem.call(localStorage, 'savedJobs', JSON.stringify(savedJobs));
+                originalSetItem.call(localStorage, 'jobTrackerBackup', JSON.stringify(dataToSave));
+                return true;
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showStatus('Error saving data. Your changes may not be persisted.', 'error');
+                return false;
+            }
+        }
+
+        function loadDataSafely() {
+            try {
+                const mainData = localStorage.getItem('savedJobs');
+                if (mainData) {
+                    savedJobs = JSON.parse(mainData);
+                    return true;
+                }
+
+                // Try backup if main data fails
+                const backupData = localStorage.getItem('jobTrackerBackup');
+                if (backupData) {
+                    const backup = JSON.parse(backupData);
+                    savedJobs = backup.jobs || [];
+                    showStatus('Loaded data from backup', 'warning');
+                    return true;
+                }
+
+                savedJobs = [];
+                return true;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showStatus('Error loading saved data. Starting fresh.', 'error');
+                savedJobs = [];
+                return false;
+            }
+        }
+
+        function exportJobData() {
+            try {
+                const dataToExport = {
+                    jobs: savedJobs,
+                    exportDate: new Date().toISOString(),
+                    version: '1.0',
+                    totalJobs: savedJobs.length
+                };
+
+                const blob = new Blob([JSON.stringify(dataToExport, null, 2)],
+                    { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `job_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showStatus('Data exported successfully', 'success');
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showStatus('Error exporting data', 'error');
+            }
+        }
+
+        function importJobData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+
+                    if (importedData.jobs && Array.isArray(importedData.jobs)) {
+                        if (confirm(`Import ${importedData.jobs.length} jobs? This will replace your current data.`)) {
+                            savedJobs = importedData.jobs;
+                            saveDataSafely();
+                            renderJobs();
+                            showStatus(`Successfully imported ${importedData.jobs.length} jobs`, 'success');
+                        }
+                    } else {
+                        showStatus('Invalid backup file format', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error importing data:', error);
+                    showStatus('Error importing data. Please check the file format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Auto-save functionality
+        function startAutoSave() {
+            setInterval(() => {
+                if (savedJobs.length > 0) {
+                    saveDataSafely();
+                }
+            }, 30000); // Auto-save every 30 seconds
+        }
+
+        // Enhanced persistence initialization moved to main DOMContentLoaded listener
+
+        // Override existing save operations to use enhanced saving
+        localStorage.setItem = function(key, value) {
+            if (key === 'savedJobs') {
+                saveDataSafely();
+            } else {
+                originalSetItem.call(this, key, value);
+            }
+        };
     </script>
     
     <!-- Email Preview Modal -->

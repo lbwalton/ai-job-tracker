@@ -1,12 +1,13 @@
 # Job Application Tracker
 
-A comprehensive web-based tool for tracking job applications with AI-powered job posting analysis, bulk operations, and advanced filtering capabilities.
+A comprehensive web-based tool for tracking job applications with AI-powered job posting analysis, Gmail integration, bulk operations, and advanced filtering capabilities.
 
-
-
+```bash
 git clone https://github.com/lbwalton/ai-job-tracker.git
+cd ai-job-tracker
+```
 
-Live Demo: https://lbwalton.github.io/ai-job-tracker/job_tracker_app.html
+**Quick Start**: Run `./start_job_tracker.sh` to launch the app locally at http://localhost:8080
 
 ## Features
 
@@ -40,37 +41,56 @@ Live Demo: https://lbwalton.github.io/ai-job-tracker/job_tracker_app.html
 - Progress tracking with "days since applied"
 
 ### 💾 **Data Management**
-- Local browser storage (no external servers)
+- Local browser storage with auto-save (every 30 seconds)
+- Automatic backup system with corruption recovery
+- Export/Import backup functionality (JSON format)
 - CSV export for individual jobs or entire list
 - Google Sheets integration
 - Bulk data operations
+
+### 📧 **Gmail Integration**
+- Connect your Gmail account to track job-related emails
+- Automatic email synchronization
+- OAuth 2.0 secure authentication
+- View email threads associated with applications
 
 ## Getting Started
 
 ### Prerequisites
 - Modern web browser (Chrome, Firefox, Safari, Edge)
-- OpenAI API key (for AI analysis features)
+- Python 3 (for local server)
+- OpenAI API key (optional, for AI analysis features)
+- Google Cloud OAuth credentials (optional, for Gmail integration)
 
 ### Setup
 
-1. **Download the files**:
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/job-tracker-app.git
-   cd job-tracker-app
+   git clone https://github.com/lbwalton/ai-job-tracker.git
+   cd ai-job-tracker
    ```
 
-2. **Open the application**:
-   - Open `job_tracker_app.html` in your web browser
-   - Or serve it using a local server:
-     ```bash
-     python -m http.server 8000
-     # Then visit http://localhost:8000
-     ```
+2. **Make the launcher executable**:
+   ```bash
+   chmod +x start_job_tracker.sh
+   ```
 
-3. **Configure OpenAI API** (optional, for AI features):
+3. **Launch the application**:
+   ```bash
+   ./start_job_tracker.sh
+   ```
+   The app will automatically open in your browser at http://localhost:8080
+
+4. **Configure OpenAI API** (optional, for AI features):
    - Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Enter it in the "OpenAI API Key" field
+   - Click "Configuration Setup" in the app
+   - Enter your API key in the "OpenAI API Key" field
    - Your key is stored locally and only sent to OpenAI
+
+5. **Configure Gmail Integration** (optional, for email tracking):
+   - See [README_SETUP.md](README_SETUP.md) for detailed Gmail setup instructions
+   - Requires Google Cloud OAuth 2.0 credentials
+   - Must run app via local server (not file://)
 
 ## Usage Guide
 
@@ -136,10 +156,12 @@ Live Demo: https://lbwalton.github.io/ai-job-tracker/job_tracker_app.html
 ## File Structure
 
 ```
-job-tracker-app/
-├── job_tracker_app.html    # Main application file
-├── job_tracker_prd.md      # Product requirements document
-├── README.md               # This file
+ai-job-tracker/
+├── job_tracker_app.html    # Main application (single-file web app)
+├── start_job_tracker.sh    # Launch script for macOS/Linux
+├── start_server.py         # Python HTTP server with auto-browser launch
+├── README.md               # This file (main documentation)
+├── README_SETUP.md         # Setup guide for quick start and Gmail
 ├── LICENSE                 # MIT License
 └── .gitignore             # Git ignore file
 ```
@@ -157,11 +179,15 @@ The app uses OpenAI's GPT-3.5-turbo model to analyze job postings and extract:
 - Key skills and technologies
 - Brief job description
 
-### Data Storage
+### Data Storage & Persistence
 - All data is stored locally in your browser's localStorage
-- No external servers or databases
+- **Auto-save**: Automatically saves every 30 seconds
+- **Automatic backup**: Creates backup copy with each save
+- **Corruption recovery**: Automatically restores from backup if data is corrupted
+- **Manual backup**: Export your data as JSON backup file
+- **Import/Restore**: Restore from previously exported backup files
+- No external servers or databases (your data stays on your machine)
 - Data persists between browser sessions
-- Export options available for backup
 
 ### Privacy & Security
 - Your API key is stored locally only
@@ -187,10 +213,32 @@ The app uses OpenAI's GPT-3.5-turbo model to analyze job postings and extract:
 - Check your OpenAI account has available credits
 - Ensure you have internet connection
 
+**Gmail Integration Issues**
+- **Error 400: invalid_request**: Make sure you're accessing via `http://localhost:8080` (not `file://`)
+- Check that `http://localhost:8080` is in your OAuth authorized JavaScript origins
+- Verify redirect URI is exactly: `http://localhost:8080/job_tracker_app.html`
+- See [README_SETUP.md](README_SETUP.md) for detailed Gmail setup instructions
+
 **Jobs Not Saving**
+- Data is auto-saved every 30 seconds - changes should persist automatically
 - Check if localStorage is enabled in your browser
-- Clear browser cache and try again
-- Ensure you're not in private/incognito mode
+- Ensure you're not in private/incognito mode (localStorage is disabled)
+- Try exporting a backup and refreshing the page
+- Check browser console for error messages
+
+**Data Recovery**
+- The app automatically creates backups - if data is lost, try refreshing the page
+- Use "Export Backup" in Configuration Setup to manually save your data
+- Use "Import Backup" to restore from a previously exported file
+
+**App Won't Start**
+- Make sure Python 3 is installed: `python3 --version`
+- Make script executable: `chmod +x start_job_tracker.sh`
+- Try running manually: `python3 start_server.py`
+
+**Port 8080 Already in Use**
+- Edit `start_server.py` and change `PORT = 8080` to another number (e.g., 8081)
+- Update any bookmarks and OAuth settings with the new port number
 
 **Export Not Working**
 - Make sure pop-ups are allowed for the page
@@ -203,9 +251,10 @@ The app uses OpenAI's GPT-3.5-turbo model to analyze job postings and extract:
 - Try refreshing the browser
 
 ### Getting Help
-- Check the browser console for error messages
+- Check the browser console (F12) for error messages
 - Ensure you're using a supported browser
 - Verify all form fields are filled correctly
+- See [README_SETUP.md](README_SETUP.md) for setup help
 
 ## Contributing
 
@@ -236,19 +285,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Roadmap
 
 ### Upcoming Features
-- Email notification system
+- Enhanced email filtering and categorization
 - Calendar integration for interview scheduling
 - Resume and cover letter management
 - Analytics dashboard with success metrics
 - Mobile app version
 - Team/collaborative features
 
-### Version History
-- **v1.0** - Initial release with basic tracking
-- **v1.1** - Added AI analysis features
-- **v1.2** - Implemented bulk operations
-- **v1.3** - Added search and filtering
+### Recent Updates
+- **v1.5** - Added Gmail integration with OAuth 2.0
+- **v1.5** - Implemented enhanced data persistence with auto-save and backup/restore
+- **v1.5** - Added accordion-style configuration UI
 - **v1.4** - Enhanced editing capabilities
+- **v1.3** - Added search and filtering
+- **v1.2** - Implemented bulk operations
+- **v1.1** - Added AI analysis features
+- **v1.0** - Initial release with basic tracking
 
 ---
 

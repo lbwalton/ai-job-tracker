@@ -82,3 +82,8 @@ build/
 # Miscellaneous
 *.sublime-project
 *.sublime-workspace
+
+# Project specific
+*.app.txt
+GITHUB_SETUP.md
+job_tracker_prd.md

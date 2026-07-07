@@ -71,9 +71,20 @@ Usage:
 ## 5. Saving jobs from your phone
 
 No native app needed — the tracker is an installable PWA with a share target.
-The one prerequisite: your phone must be able to reach the app. Either deploy
-it (step 7), or on your home network open `http://<your-computer-ip>:3000`
-(Tailscale also works great for away-from-home access).
+The one prerequisite: your phone must be able to reach the app. Pick one:
+
+- **Tailscale (recommended for local-first):** install Tailscale on your
+  computer and phone (free personal plan), then open
+  `http://<your-machine-tailnet-name>:3000` from the phone — works from
+  anywhere, nothing exposed to the internet. Keep `npm run dev` (or
+  `npm run build && npm start` inside `apps/web`) running on the computer.
+- **Same Wi-Fi:** `http://<your-computer-ip>:3000`.
+- **Deploy it** (step 7) for an always-on URL.
+
+> Gmail note: do the one-time **Connect Gmail** step from the computer at
+> `http://localhost:3000` — Google only allows plain-http OAuth redirects on
+> localhost. Once connected, tokens live in the database and syncing works no
+> matter how you reach the app afterward.
 
 **Android (share sheet, most seamless):**
 
@@ -108,10 +119,23 @@ the tracker. You can also always just open the app in Safari/Chrome and use
 In the old single-file app: Configuration Setup → **Export Backup**.
 In the new app: **Settings → Data → Import Backup**. Duplicates are skipped.
 
-## 7. Optional: deploy for scheduled sync
+## 7. Optional: hands-off scheduled sync
 
-Locally, email sync runs when you click Sync. For hands-off sync every 30
-minutes, deploy `apps/web` (Vercel config included):
+Locally, email sync runs when you click **Sync Gmail**. Two ways to make it
+automatic:
+
+**A. Cron on your own machine** (keeps everything local):
+
+1. Add a random `CRON_SECRET=...` to `apps/web/.env.local` and restart.
+2. `crontab -e` and add:
+   ```
+   */30 * * * * curl -s -H "Authorization: Bearer YOUR_CRON_SECRET" http://localhost:3000/api/gmail/sync
+   ```
+   (macOS users can use a LaunchAgent instead.) Syncs run whenever the app is
+   up; missed windows are harmless — the next sync catches up.
+
+**B. Deploy `apps/web`** (Vercel config included) so sync runs even with your
+computer off:
 
 - Replace SQLite with a hosted DB (edit `apps/web/src/lib/db.ts`; Turso/libSQL
   is nearly drop-in, or any Postgres with a small rewrite of the SQL).

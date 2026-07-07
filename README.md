@@ -4,7 +4,9 @@ Track every job application with near-zero manual effort:
 
 - **One-click capture** — a Chrome extension detects job postings (LinkedIn, Indeed, Greenhouse, Lever, Ashby, Workday…) and saves them to your tracker with structured fields.
 - **Autofill applications** — the extension fills application forms from your saved profile (name, links, work authorization, salary, stock answers). You review and hit Submit.
+- **Capture from your phone** — the app is an installable PWA: on Android, share any job link straight into the tracker; on iPhone, a 2-minute Shortcut does the same. Reach your local instance from anywhere with Tailscale, or deploy it.
 - **Self-updating statuses** — Gmail monitoring pulls hiring-team emails, classifies them with Claude (confirmation / assessment / interview / offer / rejection), links them to the right application, and moves the status forward automatically. Ambiguous emails land in a review inbox.
+- **Batch-apply with Claude in Chrome** — a `/apply` skill for Claude Code (`claude --chrome` in this repo) drives your real browser through the saved-jobs pile: fills each form from your profile — including sites that resist scripted autofill — waits for you to review and submit, then updates the tracker.
 - **Full tracker** — search, filter, sort, bulk operations, status history, notes, per-job email timeline, JSON export/import (your v1 backup imports directly).
 
 > The previous single-file app lives in [`legacy/`](legacy/) and still works; export its backup and import it in Settings → Data.

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JobTrackr</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <span class="brand">Job<span>Trackr</span></span>
+      <span id="conn" class="dot" title="Server connection"></span>
+    </header>
+
+    <main id="main">
+      <div id="status" class="status hidden"></div>
+
+      <section id="actions">
+        <button id="capture" class="btn primary">Save this job to tracker</button>
+        <button id="autofill" class="btn">Autofill application form</button>
+        <p id="hint" class="muted"></p>
+      </section>
+
+      <details id="settings">
+        <summary>Settings</summary>
+        <label>Server URL</label>
+        <input id="serverUrl" type="text" placeholder="http://localhost:3000" />
+        <label>Extension Token <span class="muted">(from web app → Settings)</span></label>
+        <input id="token" type="text" placeholder="paste token" />
+        <button id="save" class="btn">Save &amp; Test</button>
+      </details>
+
+      <footer>
+        <a id="openApp" href="#" target="_blank">Open tracker ↗</a>
+      </footer>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

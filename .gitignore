@@ -87,3 +87,12 @@ build/
 *.app.txt
 GITHUB_SETUP.md
 job_tracker_prd.md
+# v2 monorepo
+.next/
+.output/
+.wxt/
+next-env.d.ts
+.env.local
+.env*.local
+apps/web/data/
+*.tsbuildinfo

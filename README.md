@@ -1,309 +1,95 @@
-# Job Application Tracker
+# JobTrackr — AI Job Application Tracker (v2)
 
-A comprehensive web-based tool for tracking job applications with AI-powered job posting analysis, Gmail integration, bulk operations, and advanced filtering capabilities.
+Track every job application with near-zero manual effort:
+
+- **One-click capture** — a Chrome extension detects job postings (LinkedIn, Indeed, Greenhouse, Lever, Ashby, Workday…) and saves them to your tracker with structured fields.
+- **Autofill applications** — the extension fills application forms from your saved profile (name, links, work authorization, salary, stock answers). You review and hit Submit.
+- **Self-updating statuses** — Gmail monitoring pulls hiring-team emails, classifies them with Claude (confirmation / assessment / interview / offer / rejection), links them to the right application, and moves the status forward automatically. Ambiguous emails land in a review inbox.
+- **Full tracker** — search, filter, sort, bulk operations, status history, notes, per-job email timeline, JSON export/import (your v1 backup imports directly).
+
+> The previous single-file app lives in [`legacy/`](legacy/) and still works; export its backup and import it in Settings → Data.
+
+## Repo layout
+
+```
+apps/web         Next.js app — tracker UI, API, Gmail sync, AI parsing (SQLite storage)
+apps/extension   Chrome extension (WXT) — capture + autofill
+packages/core    Shared types, schemas, classification taxonomy
+legacy/          The original v1 single-file app
+docs/SETUP.md    Step-by-step setup (API keys, Gmail OAuth, extension install)
+```
+
+## Quick start
 
 ```bash
-git clone https://github.com/lbwalton/ai-job-tracker.git
-cd ai-job-tracker
+npm install
+cp apps/web/.env.example apps/web/.env.local   # add your ANTHROPIC_API_KEY (and Google creds later)
+npm run dev                                     # http://localhost:3000
 ```
 
-**Quick Start**: Run `./start_job_tracker.sh` to launch the app locally at http://localhost:8080
+Works with no keys at all for manual tracking. Add keys to unlock:
 
-## Features
+| Feature | Needs |
+|---|---|
+| AI parsing (URL / paste / describe / extension capture on unstructured pages) | `ANTHROPIC_API_KEY` |
+| Email monitoring + auto status updates | `ANTHROPIC_API_KEY` + Google OAuth credentials |
+| Extension capture on pages with structured data | nothing |
 
-### 🎯 **Multiple Input Methods**
-- **Job URL Analysis**: Paste any job posting URL for automatic analysis
-- **Copy & Paste**: Paste job posting content directly 
-- **Describe Job**: Use natural language to describe your application
-- **Manual Entry**: Complete control with detailed form input
+### Chrome extension
 
-### 🤖 **AI-Powered Analysis**
-- Automatically extracts company, position, location, salary, and more
-- Uses OpenAI GPT to parse job postings and descriptions
-- Smart duplicate detection prevents accidental re-entries
-
-### 📊 **Advanced Management**
-- **Search & Filter**: Find jobs by company, position, location, status, or date range
-- **Column Sorting**: Click headers to sort by any field
-- **Bulk Operations**: Select multiple jobs to update dates, statuses, or delete
-- **Inline Editing**: Click to edit company, position, or location directly
-
-### ✏️ **Comprehensive Editing**
-- Full-form editing modal for complete job details
-- Editable application dates with automatic "days since" calculation
-- Custom status options beyond the standard set
-- Source URL tracking with clickable links
-
-### 📈 **Status Tracking**
-- Pre-defined statuses: Applied, Interview, Offer, Rejected
-- Add custom statuses for your workflow
-- Visual status indicators
-- Progress tracking with "days since applied"
-
-### 💾 **Data Management**
-- Local browser storage with auto-save (every 30 seconds)
-- Automatic backup system with corruption recovery
-- Export/Import backup functionality (JSON format)
-- CSV export for individual jobs or entire list
-- Google Sheets integration
-- Bulk data operations
-
-### 📧 **Gmail Integration**
-- Connect your Gmail account to track job-related emails
-- Automatic email synchronization
-- OAuth 2.0 secure authentication
-- View email threads associated with applications
-
-## Getting Started
-
-### Prerequisites
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Python 3 (for local server)
-- OpenAI API key (optional, for AI analysis features)
-- Google Cloud OAuth credentials (optional, for Gmail integration)
-
-### Setup
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/lbwalton/ai-job-tracker.git
-   cd ai-job-tracker
-   ```
-
-2. **Make the launcher executable**:
-   ```bash
-   chmod +x start_job_tracker.sh
-   ```
-
-3. **Launch the application**:
-   ```bash
-   ./start_job_tracker.sh
-   ```
-   The app will automatically open in your browser at http://localhost:8080
-
-4. **Configure OpenAI API** (optional, for AI features):
-   - Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Click "Configuration Setup" in the app
-   - Enter your API key in the "OpenAI API Key" field
-   - Your key is stored locally and only sent to OpenAI
-
-5. **Configure Gmail Integration** (optional, for email tracking):
-   - See [README_SETUP.md](README_SETUP.md) for detailed Gmail setup instructions
-   - Requires Google Cloud OAuth 2.0 credentials
-   - Must run app via local server (not file://)
-
-## Usage Guide
-
-### Adding Job Applications
-
-#### Method 1: Job URL
-1. Select "Job URL" tab
-2. Paste the job posting URL
-3. Click "Analyze Job Posting"
-4. Review extracted information
-5. Click "Save to Tracker"
-
-#### Method 2: Copy & Paste
-1. Select "Copy & Paste" tab
-2. Copy the entire job posting text
-3. Paste into the text area
-4. Click "Analyze Job Posting"
-5. Save when satisfied
-
-#### Method 3: Describe Job
-1. Select "Describe Job" tab
-2. Write in plain language: *"I applied to Google for a Software Engineer position in Mountain View. It's full-time and pays around $150k"*
-3. Click "Analyze Description"
-4. Review and save
-
-#### Method 4: Manual Entry
-1. Select "Manual Entry" tab
-2. Fill in all known details
-3. Click "Add Job Application"
-
-### Managing Applications
-
-#### Search & Filter
-- **Search**: Type in the search box to find specific jobs
-- **Status Filter**: Use dropdown to filter by application status
-- **Date Range**: Set "From" and "To" dates to filter by application period
-- **Clear Filters**: Reset all filters and search
-
-#### Sorting
-- Click any column header to sort by that field
-- Click again to reverse the sort order
-- Visual indicators show current sort direction
-
-#### Bulk Operations
-1. Select jobs using checkboxes
-2. Use "Select All" to select everything
-3. Choose bulk action:
-   - **Update Date**: Set new application date for all selected
-   - **Update Status**: Change status for all selected
-   - **Delete**: Remove all selected jobs
-
-#### Individual Editing
-- **Inline Edit**: Click company, position, or location to edit directly
-- **Full Edit**: Click "Edit" button for complete form editing
-- **Date Edit**: Click date field to change application date
-- **Status Edit**: Use dropdown to change status
-
-### Duplicate Detection
-- System automatically detects potential duplicates
-- Shows existing job details and current status
-- Option to add anyway or disregard
-
-## File Structure
-
-```
-ai-job-tracker/
-├── job_tracker_app.html    # Main application (single-file web app)
-├── start_job_tracker.sh    # Launch script for macOS/Linux
-├── start_server.py         # Python HTTP server with auto-browser launch
-├── README.md               # This file (main documentation)
-├── README_SETUP.md         # Setup guide for quick start and Gmail
-├── LICENSE                 # MIT License
-└── .gitignore             # Git ignore file
+```bash
+npm run build:extension
 ```
 
-## Features in Detail
+Then `chrome://extensions` → enable Developer mode → **Load unpacked** → select
+`apps/extension/.output/chrome-mv3`. Open the popup → Settings and paste the
+Server URL + token shown in the web app under **Settings → Chrome Extension**.
 
-### AI Analysis
-The app uses OpenAI's GPT-3.5-turbo model to analyze job postings and extract:
-- Company name
-- Job title/position
-- Location (including remote work)
-- Salary range (if mentioned)
-- Job type (full-time, part-time, contract, etc.)
-- Experience level required
-- Key skills and technologies
-- Brief job description
+### Gmail monitoring
 
-### Data Storage & Persistence
-- All data is stored locally in your browser's localStorage
-- **Auto-save**: Automatically saves every 30 seconds
-- **Automatic backup**: Creates backup copy with each save
-- **Corruption recovery**: Automatically restores from backup if data is corrupted
-- **Manual backup**: Export your data as JSON backup file
-- **Import/Restore**: Restore from previously exported backup files
-- No external servers or databases (your data stays on your machine)
-- Data persists between browser sessions
+See [docs/SETUP.md](docs/SETUP.md) — 5 minutes in Google Cloud Console for a
+read-only Gmail OAuth client, then click **Connect Gmail** in Settings. Sync
+runs on demand from the dashboard, and on a 30-minute schedule when deployed
+(Vercel Cron is preconfigured in `apps/web/vercel.json`).
 
-### Privacy & Security
-- Your API key is stored locally only
-- Job data never leaves your browser (except for AI analysis)
-- No tracking or analytics
-- Open source and transparent
+## How email monitoring works
 
-## Browser Compatibility
+1. Gmail is queried (read-only scope) for mail from known ATS domains
+   (greenhouse.io, lever.co, ashbyhq.com, workday, …), from the email domains
+   of companies you track, and for hiring-related subjects.
+2. Each new email is classified by Claude into: confirmation, assessment
+   invite, interview invite, offer, rejection, recruiter outreach, or other.
+3. Emails are matched to your applications by sender domain, then company name.
+4. High-confidence classifications that move an application **forward**
+   (Applied → Interview → Offer / Rejected) are applied automatically and
+   recorded in the job's status history. Everything else waits in
+   **Email Inbox** for a one-click accept/dismiss.
 
-| Browser | Version | Status |
-|---------|---------|--------|
-| Chrome  | 80+     | ✅ Fully Supported |
-| Firefox | 75+     | ✅ Fully Supported |
-| Safari  | 13+     | ✅ Fully Supported |
-| Edge    | 80+     | ✅ Fully Supported |
+## Privacy
 
-## Troubleshooting
+- All data lives in a local SQLite file (`apps/web/data/jobtracker.db`) — or your own database if you deploy.
+- Gmail access is read-only; tokens are stored in your database, never sent anywhere else.
+- Email/job content is sent only to the Anthropic API for parsing/classification.
+- The extension talks only to *your* server, authenticated with a token you control.
 
-### Common Issues
+## Deploying (optional)
 
-**AI Analysis Not Working**
-- Verify your OpenAI API key is correct
-- Check your OpenAI account has available credits
-- Ensure you have internet connection
+The app runs fine locally forever. To get scheduled email sync without your
+machine running, deploy `apps/web` to Vercel (or any Node host):
 
-**Gmail Integration Issues**
-- **Error 400: invalid_request**: Make sure you're accessing via `http://localhost:8080` (not `file://`)
-- Check that `http://localhost:8080` is in your OAuth authorized JavaScript origins
-- Verify redirect URI is exactly: `http://localhost:8080/job_tracker_app.html`
-- See [README_SETUP.md](README_SETUP.md) for detailed Gmail setup instructions
+1. Swap SQLite for a hosted database (the data layer is isolated in
+   `apps/web/src/lib/db.ts`) — e.g. Turso/libSQL is a near drop-in.
+2. Set env vars (`ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID/SECRET`, `APP_URL`,
+   `CRON_SECRET`) and add your deployed callback URL to the Google OAuth client.
+3. `vercel.json` already schedules `/api/gmail/sync` every 30 minutes.
 
-**Jobs Not Saving**
-- Data is auto-saved every 30 seconds - changes should persist automatically
-- Check if localStorage is enabled in your browser
-- Ensure you're not in private/incognito mode (localStorage is disabled)
-- Try exporting a backup and refreshing the page
-- Check browser console for error messages
+## What the extension does — and doesn't
 
-**Data Recovery**
-- The app automatically creates backups - if data is lost, try refreshing the page
-- Use "Export Backup" in Configuration Setup to manually save your data
-- Use "Import Backup" to restore from a previously exported file
-
-**App Won't Start**
-- Make sure Python 3 is installed: `python3 --version`
-- Make script executable: `chmod +x start_job_tracker.sh`
-- Try running manually: `python3 start_server.py`
-
-**Port 8080 Already in Use**
-- Edit `start_server.py` and change `PORT = 8080` to another number (e.g., 8081)
-- Update any bookmarks and OAuth settings with the new port number
-
-**Export Not Working**
-- Make sure pop-ups are allowed for the page
-- Try a different browser
-- Check that downloads are enabled
-
-**Performance Issues**
-- Clear old job entries you no longer need
-- Use filters to reduce displayed jobs
-- Try refreshing the browser
-
-### Getting Help
-- Check the browser console (F12) for error messages
-- Ensure you're using a supported browser
-- Verify all form fields are filled correctly
-- See [README_SETUP.md](README_SETUP.md) for setup help
-
-## Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature-name`
-3. **Make your changes**
-4. **Test thoroughly**
-5. **Submit a pull request**
-
-### Development Guidelines
-- Keep the single-file architecture
-- Maintain compatibility with all supported browsers
-- Add comments for complex functionality
-- Test all features before submitting
+Capture and autofill are assistive: the extension never submits an application
+for you. Fully automated submission violates LinkedIn/Indeed terms of service
+and breaks constantly; review-and-submit keeps your accounts safe while
+removing ~95% of the typing.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- OpenAI for providing the GPT API for job posting analysis
-- AllOrigins for CORS proxy service
-- Google Sheets integration inspiration
-
-## Roadmap
-
-### Upcoming Features
-- Enhanced email filtering and categorization
-- Calendar integration for interview scheduling
-- Resume and cover letter management
-- Analytics dashboard with success metrics
-- Mobile app version
-- Team/collaborative features
-
-### Recent Updates
-- **v1.5** - Added Gmail integration with OAuth 2.0
-- **v1.5** - Implemented enhanced data persistence with auto-save and backup/restore
-- **v1.5** - Added accordion-style configuration UI
-- **v1.4** - Enhanced editing capabilities
-- **v1.3** - Added search and filtering
-- **v1.2** - Implemented bulk operations
-- **v1.1** - Added AI analysis features
-- **v1.0** - Initial release with basic tracking
-
----
-
-**Made with ❤️ for job seekers everywhere**
-
-*Star this repository if you find it helpful!*
+MIT — see [LICENSE](LICENSE).

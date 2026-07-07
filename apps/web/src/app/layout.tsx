@@ -5,6 +5,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "JobTrackr",
   description: "AI-powered job application tracker",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
+};
+
+export const viewport = {
+  themeColor: "#2f6fed",
 };
 
 const NAV = [

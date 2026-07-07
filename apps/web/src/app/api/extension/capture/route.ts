@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { ParsedJob } from "@jobtrackr/core";
 import { aiAvailable, parseJobPosting } from "@/lib/ai";
+import { fetchUrlContent } from "@/lib/fetch-job";
 import { CORS_HEADERS, corsPreflight, requireExtensionAuth } from "@/lib/extension-auth";
 import { createJob, findDuplicate } from "@/lib/jobs";
 
@@ -74,9 +75,13 @@ export async function POST(req: Request) {
           { status: 503, headers: CORS_HEADERS },
         );
       }
+      // URL-only captures (e.g. the iOS Shortcut) send no page content —
+      // fetch the posting server-side instead.
       const content = jsonLd
         ? `URL: ${url}\nJSON-LD:\n${JSON.stringify(jsonLd)}`
-        : `URL: ${url}\nTitle: ${title}\nPage text:\n${pageText}`;
+        : pageText.trim()
+          ? `URL: ${url}\nTitle: ${title}\nPage text:\n${pageText}`
+          : await fetchUrlContent(url);
       fields = await parseJobPosting(content);
     }
 

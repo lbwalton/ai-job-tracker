@@ -68,12 +68,47 @@ Usage:
   then popup → **Autofill application form**. Matched fields are filled
   (never overwriting anything you typed); attach your resume and submit.
 
-## 5. Import your v1 data
+## 5. Saving jobs from your phone
+
+No native app needed — the tracker is an installable PWA with a share target.
+The one prerequisite: your phone must be able to reach the app. Either deploy
+it (step 7), or on your home network open `http://<your-computer-ip>:3000`
+(Tailscale also works great for away-from-home access).
+
+**Android (share sheet, most seamless):**
+
+1. Open the tracker in Chrome on your phone → menu → **Add to Home screen →
+   Install**.
+2. From LinkedIn/Indeed/any browser: **Share → JobTrackr**. The shared link is
+   analyzed by AI and you get a one-tap "Save for later" / "I applied already"
+   screen.
+
+**iPhone (Shortcuts):**
+
+iOS doesn't support PWA share targets, so use a one-time Shortcut:
+
+1. Shortcuts app → **+** → name it "Save to JobTrackr".
+2. Add action **Get URLs from Input**.
+3. Add action **Get Contents of URL**:
+   - URL: `https://<your-app>/api/extension/capture`
+   - Method: **POST**, Request Body: **JSON** with one field:
+     `url` = *URLs* (the variable from step 2)
+   - Headers: `Authorization` = `Bearer <your extension token>` (from
+     Settings → Chrome Extension)
+4. In the Shortcut's settings (ⓘ), enable **Show in Share Sheet** (accepts
+   URLs).
+
+Now Share → **Save to JobTrackr** from any app captures the posting — the
+server fetches and parses it, so it works even though the phone never opens
+the tracker. You can also always just open the app in Safari/Chrome and use
+**/capture** to paste a link.
+
+## 6. Import your v1 data
 
 In the old single-file app: Configuration Setup → **Export Backup**.
 In the new app: **Settings → Data → Import Backup**. Duplicates are skipped.
 
-## 6. Optional: deploy for scheduled sync
+## 7. Optional: deploy for scheduled sync
 
 Locally, email sync runs when you click Sync. For hands-off sync every 30
 minutes, deploy `apps/web` (Vercel config included):

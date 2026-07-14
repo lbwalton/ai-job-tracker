@@ -100,8 +100,9 @@
         }
 
         .accordion-content.expanded {
-            max-height: 800px;
+            max-height: 1600px;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .setup-section {
@@ -714,8 +715,11 @@
                         <h4>Gmail Integration</h4>
                         <div class="form-group">
                             <label for="googleClientId">Google Client ID</label>
-                            <input type="text" id="googleClientId" placeholder="xxxxx.apps.googleusercontent.com"
-                                   title="Get this from Google Cloud Console">
+                            <div style="position: relative;">
+                                <input type="password" id="googleClientId" placeholder="xxxxx.apps.googleusercontent.com"
+                                       title="Get this from Google Cloud Console" style="padding-right: 40px;">
+                                <button onclick="toggleVisibility('googleClientId', this)" type="button" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; color: #666;">👁️</button>
+                            </div>
                             <small>
                                 <strong>Setup Instructions:</strong><br>
                                 1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
@@ -737,6 +741,54 @@
                             <button id="gmailSyncBtn" class="btn" onclick="syncGmail()" style="display: none; background: #28a745; margin-left: 10px;">Sync Emails</button>
                         </div>
                         <small>Gmail integration creates organized labels: <strong>job_tracker_app</strong> → <strong>@domain.com</strong> for easy email management</small>
+                    </div>
+
+                    <div class="setup-section" style="background: #d4edda; border-color: #c3e6cb;">
+                        <h4 style="color: #155724;">Google Sheets Sync (n8n Integration)</h4>
+                        <div class="form-group">
+                            <label for="googleSheetId">Google Sheet ID</label>
+                            <div style="position: relative;">
+                                <input type="password" id="googleSheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                                       title="Copy from the Sheet URL between /d/ and /edit" style="padding-right: 40px;">
+                                <button onclick="toggleVisibility('googleSheetId', this)" type="button" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; color: #666;">👁️</button>
+                            </div>
+                            <small>
+                                <strong>How to find Sheet ID:</strong><br>
+                                From URL: https://docs.google.com/spreadsheets/d/<strong>[SHEET_ID]</strong>/edit<br>
+                                The Sheet must be shared with your Google account or set to "Anyone with link can view"
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label for="sheetName">Sheet Name (Tab)</label>
+                            <input type="text" id="sheetName" value="Sheet1" placeholder="Sheet1"
+                                   title="Name of the sheet tab to sync from">
+                        </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <div id="sheetSyncStatus" style="margin-bottom: 15px;">
+                                <span id="sheetSyncStatusText">Sheet: Not synced</span>
+                            </div>
+                            <button id="sheetSyncBtn" class="btn" onclick="syncFromGoogleSheet()" style="background: #28a745; margin-right: 10px;">Sync from Sheet</button>
+                            <label style="display: inline-flex; align-items: center; margin-left: 15px; cursor: pointer;">
+                                <input type="checkbox" id="autoSyncSheet" style="margin-right: 8px;">
+                                Auto-sync every 5 minutes
+                            </label>
+                        </div>
+                        <small>Jobs imported from the sheet will be tagged with source "n8n" and status from the sheet (default: "To Apply")</small>
+                    </div>
+
+                    <div class="setup-section" style="background: #e7f3ff; border-color: #bee5eb;">
+                        <h4 style="color: #0c5460;">Configuration Backup</h4>
+                        <p style="margin-bottom: 15px; font-size: 14px;">Save your settings to a file to use across browsers or ports.</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn" onclick="exportConfiguration()" style="background: #17a2b8; padding: 8px 16px; font-size: 14px;">
+                                Export Settings
+                            </button>
+                            <label for="importConfig" class="btn" style="background: #138496; padding: 8px 16px; font-size: 14px; margin: 0;">
+                                Import Settings
+                                <input type="file" id="importConfig" accept=".json" onchange="importConfiguration(event)" style="display: none;">
+                            </label>
+                        </div>
+                        <small>Exports: API keys, Client ID, Sheet ID, and preferences. Does not include job data.</small>
                     </div>
                 </div>
             </div>
@@ -914,6 +966,8 @@ Microsoft,Product Manager,Remote,2024-01-10,Interview</pre>
                         <div>
                             <select id="statusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white;">
                                 <option value="">All Statuses</option>
+                                <option value="To Apply">To Apply</option>
+                                <option value="Not Applied">Not Applied</option>
                                 <option value="Applied">Applied</option>
                                 <option value="Interview">Interview</option>
                                 <option value="Offer">Offer</option>
@@ -991,6 +1045,8 @@ Microsoft,Product Manager,Remote,2024-01-10,Interview</pre>
                             <label style="font-weight: 600; margin: 0;">Status:</label>
                             <select id="bulkStatus" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                                 <option value="">Select Status</option>
+                                <option value="To Apply">To Apply</option>
+                                <option value="Not Applied">Not Applied</option>
                                 <option value="Applied">Applied</option>
                                 <option value="Interview">Interview</option>
                                 <option value="Offer">Offer</option>
@@ -1028,7 +1084,7 @@ Microsoft,Product Manager,Remote,2024-01-10,Interview</pre>
         let gapi;
         let isGmailConnected = false;
         let gmailAccessToken = null;
-        const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.settings.basic';
+        const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/spreadsheets.readonly';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest';
         let currentSort = { field: null, direction: 'asc' };
         let filteredJobs = [];
@@ -1902,6 +1958,8 @@ Enhance missing information where possible based on the company name and role. O
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Status</label>
                     <select id="editStatus" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px; background: white;">
+                        <option value="To Apply" ${job.status === 'To Apply' ? 'selected' : ''}>To Apply</option>
+                        <option value="Not Applied" ${job.status === 'Not Applied' ? 'selected' : ''}>Not Applied</option>
                         <option value="Applied" ${job.status === 'Applied' ? 'selected' : ''}>Applied</option>
                         <option value="Interview" ${job.status === 'Interview' ? 'selected' : ''}>Interview</option>
                         <option value="Offer" ${job.status === 'Offer' ? 'selected' : ''}>Offer</option>
@@ -2836,6 +2894,7 @@ Only return valid JSON, no additional text.`;
             initializeChronoIdSystem();
             updateJobsTable();
             initializeGmail();
+            setupSheetAutoSync();
 
             // Enhanced persistence initialization
             loadDataSafely();
@@ -2914,6 +2973,8 @@ Only return valid JSON, no additional text.`;
                         <td data-column="source">${sourceDisplay}</td>
                         <td data-column="status">
                             <select class="status-dropdown" onchange="updateJobStatusFromDropdown(${job.id}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white; font-size: 12px;">
+                                <option value="To Apply" ${job.status === 'To Apply' ? 'selected' : ''}>To Apply</option>
+                                <option value="Not Applied" ${job.status === 'Not Applied' ? 'selected' : ''}>Not Applied</option>
                                 <option value="Applied" ${job.status === 'Applied' ? 'selected' : ''}>Applied</option>
                                 <option value="Interview" ${job.status === 'Interview' ? 'selected' : ''}>Interview</option>
                                 <option value="Offer" ${job.status === 'Offer' ? 'selected' : ''}>Offer</option>
@@ -4279,6 +4340,282 @@ Only return valid JSON, no additional text.`;
         
         function closeEmailPreview() {
             document.getElementById('emailPreviewModal').style.display = 'none';
+        }
+
+        // Google Sheets Sync Functions
+        let sheetAutoSyncInterval = null;
+
+        async function syncFromGoogleSheet() {
+            const sheetId = document.getElementById('googleSheetId').value.trim();
+            const sheetName = document.getElementById('sheetName').value.trim() || 'Sheet1';
+
+            if (!sheetId) {
+                showStatus('Please enter a Google Sheet ID', 'error');
+                return;
+            }
+
+            // Check if Gmail is connected (we'll use the same OAuth token)
+            if (!gmailAccessToken) {
+                showStatus('Please connect Gmail first to authenticate with Google Sheets', 'error');
+                return;
+            }
+
+            document.getElementById('sheetSyncStatusText').textContent = 'Sheet: Syncing...';
+            showStatus('Fetching jobs from Google Sheet...', 'loading');
+
+            try {
+                // Fetch sheet data using Google Sheets API
+                const response = await fetch(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${gmailAccessToken}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `Failed to fetch sheet: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const rows = data.values;
+
+                if (!rows || rows.length < 2) {
+                    showStatus('Sheet is empty or has no data rows', 'error');
+                    document.getElementById('sheetSyncStatusText').textContent = 'Sheet: No data found';
+                    return;
+                }
+
+                // Parse headers (first row)
+                const headers = rows[0].map(h => h.toLowerCase().trim());
+
+                // Map column indices
+                const colMap = {
+                    company: headers.findIndex(h => h.includes('company')),
+                    position: headers.findIndex(h => h.includes('position') || h.includes('title') || h.includes('job')),
+                    location: headers.findIndex(h => h.includes('location')),
+                    salary: headers.findIndex(h => h.includes('salary')),
+                    jobType: headers.findIndex(h => h.includes('type')),
+                    url: headers.findIndex(h => h.includes('url') || h.includes('link')),
+                    status: headers.findIndex(h => h.includes('status')),
+                    dateAdded: headers.findIndex(h => h.includes('date')),
+                    source: headers.findIndex(h => h.includes('source'))
+                };
+
+                if (colMap.company === -1 || colMap.position === -1) {
+                    showStatus('Sheet must have "Company" and "Position" columns', 'error');
+                    document.getElementById('sheetSyncStatusText').textContent = 'Sheet: Invalid format';
+                    return;
+                }
+
+                // Parse data rows
+                const newJobs = [];
+                let skippedDuplicates = 0;
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row[colMap.company] || !row[colMap.position]) continue;
+
+                    const job = {
+                        company: row[colMap.company] || '',
+                        position: row[colMap.position] || '',
+                        location: colMap.location >= 0 ? (row[colMap.location] || '') : '',
+                        salaryRange: colMap.salary >= 0 ? (row[colMap.salary] || '') : '',
+                        jobType: colMap.jobType >= 0 ? (row[colMap.jobType] || '') : '',
+                        sourceUrl: colMap.url >= 0 ? (row[colMap.url] || '') : '',
+                        status: colMap.status >= 0 ? (row[colMap.status] || 'To Apply') : 'To Apply',
+                        dateAdded: colMap.dateAdded >= 0 ? (row[colMap.dateAdded] || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                        source: 'n8n',
+                        id: Date.now() + i,
+                        daysSince: 0
+                    };
+
+                    // Check for duplicates (by URL or company+position)
+                    const isDuplicate = savedJobs.some(existing => {
+                        if (job.sourceUrl && existing.sourceUrl && job.sourceUrl === existing.sourceUrl) {
+                            return true;
+                        }
+                        return existing.company?.toLowerCase() === job.company.toLowerCase() &&
+                               existing.position?.toLowerCase() === job.position.toLowerCase();
+                    });
+
+                    if (isDuplicate) {
+                        skippedDuplicates++;
+                        continue;
+                    }
+
+                    newJobs.push(job);
+                }
+
+                if (newJobs.length === 0) {
+                    const msg = skippedDuplicates > 0
+                        ? `No new jobs to import (${skippedDuplicates} duplicates skipped)`
+                        : 'No valid jobs found in sheet';
+                    showStatus(msg, 'success');
+                    document.getElementById('sheetSyncStatusText').textContent = `Sheet: Synced (no new jobs)`;
+                    return;
+                }
+
+                // Add new jobs
+                savedJobs.unshift(...newJobs);
+                assignChronoIds();
+                saveDataSafely();
+                updateJobsTable();
+
+                const msg = skippedDuplicates > 0
+                    ? `Imported ${newJobs.length} jobs (${skippedDuplicates} duplicates skipped)`
+                    : `Imported ${newJobs.length} jobs from sheet`;
+                showStatus(msg, 'success');
+                document.getElementById('sheetSyncStatusText').textContent = `Sheet: Synced (${newJobs.length} imported)`;
+
+                // Save sheet config
+                localStorage.setItem('googleSheetId', sheetId);
+                localStorage.setItem('sheetName', sheetName);
+
+            } catch (error) {
+                console.error('Sheet sync error:', error);
+                showStatus(`Sheet sync failed: ${error.message}`, 'error');
+                document.getElementById('sheetSyncStatusText').textContent = 'Sheet: Sync failed';
+            }
+        }
+
+        function setupSheetAutoSync() {
+            const checkbox = document.getElementById('autoSyncSheet');
+
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    // Start auto-sync every 5 minutes
+                    syncFromGoogleSheet(); // Sync immediately
+                    sheetAutoSyncInterval = setInterval(syncFromGoogleSheet, 5 * 60 * 1000);
+                    localStorage.setItem('autoSyncSheet', 'true');
+                } else {
+                    // Stop auto-sync
+                    if (sheetAutoSyncInterval) {
+                        clearInterval(sheetAutoSyncInterval);
+                        sheetAutoSyncInterval = null;
+                    }
+                    localStorage.setItem('autoSyncSheet', 'false');
+                }
+            });
+
+            // Restore saved preference
+            const savedSheetId = localStorage.getItem('googleSheetId');
+            const savedSheetName = localStorage.getItem('sheetName');
+            const savedAutoSync = localStorage.getItem('autoSyncSheet');
+
+            if (savedSheetId) {
+                document.getElementById('googleSheetId').value = savedSheetId;
+            }
+            if (savedSheetName) {
+                document.getElementById('sheetName').value = savedSheetName;
+            }
+            if (savedAutoSync === 'true') {
+                checkbox.checked = true;
+                // Start auto-sync if Gmail is connected
+                if (gmailAccessToken) {
+                    sheetAutoSyncInterval = setInterval(syncFromGoogleSheet, 5 * 60 * 1000);
+                }
+            }
+
+            // Save sheet ID on change
+            document.getElementById('googleSheetId').addEventListener('change', function() {
+                localStorage.setItem('googleSheetId', this.value);
+            });
+            document.getElementById('sheetName').addEventListener('change', function() {
+                localStorage.setItem('sheetName', this.value);
+            });
+        }
+
+        // Toggle visibility for sensitive fields
+        function toggleVisibility(fieldId, button) {
+            const field = document.getElementById(fieldId);
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        // Configuration Export/Import Functions
+        function exportConfiguration() {
+            try {
+                const config = {
+                    openaiApiKey: localStorage.getItem('openaiApiKey') || '',
+                    googleClientId: localStorage.getItem('googleClientId') || '',
+                    googleSheetId: localStorage.getItem('googleSheetId') || '',
+                    sheetName: localStorage.getItem('sheetName') || 'Sheet1',
+                    autoSyncSheet: localStorage.getItem('autoSyncSheet') || 'false',
+                    exportDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+
+                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `job_tracker_config_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showStatus('Configuration exported successfully', 'success');
+            } catch (error) {
+                console.error('Error exporting configuration:', error);
+                showStatus('Error exporting configuration', 'error');
+            }
+        }
+
+        function importConfiguration(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+
+                    if (!config.version) {
+                        showStatus('Invalid configuration file format', 'error');
+                        return;
+                    }
+
+                    // Import settings
+                    if (config.openaiApiKey) {
+                        localStorage.setItem('openaiApiKey', config.openaiApiKey);
+                        document.getElementById('openaiKey').value = config.openaiApiKey;
+                    }
+                    if (config.googleClientId) {
+                        localStorage.setItem('googleClientId', config.googleClientId);
+                        document.getElementById('googleClientId').value = config.googleClientId;
+                    }
+                    if (config.googleSheetId) {
+                        localStorage.setItem('googleSheetId', config.googleSheetId);
+                        document.getElementById('googleSheetId').value = config.googleSheetId;
+                    }
+                    if (config.sheetName) {
+                        localStorage.setItem('sheetName', config.sheetName);
+                        document.getElementById('sheetName').value = config.sheetName;
+                    }
+                    if (config.autoSyncSheet !== undefined) {
+                        localStorage.setItem('autoSyncSheet', config.autoSyncSheet);
+                        document.getElementById('autoSyncSheet').checked = (config.autoSyncSheet === 'true');
+                    }
+
+                    showStatus('Configuration imported successfully', 'success');
+                } catch (error) {
+                    console.error('Error importing configuration:', error);
+                    showStatus('Error importing configuration. Please check the file format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset file input so same file can be imported again
+            event.target.value = '';
         }
 
         // Enhanced Data Persistence Functions

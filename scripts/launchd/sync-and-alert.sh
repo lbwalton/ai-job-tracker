@@ -21,6 +21,21 @@ if ! curl -s -o /dev/null --max-time 5 "$APP_URL/api/jobs"; then
   exit 0
 fi
 
+# launchd fires us every 5 min; the actual cadence is the app's
+# "Auto-sync interval" setting (Settings -> Gmail Monitoring), so LB can
+# change it in the UI without reloading the LaunchAgent.
+INTERVAL_MIN="$(curl -s --max-time 10 "$APP_URL/api/settings" \
+  | /usr/bin/python3 -c "import json,sys; print(json.load(sys.stdin).get('syncIntervalMinutes', 30))" \
+  2>/dev/null || echo 30)"
+LAST_RUN_FILE="$REPO/apps/web/data/sync-alert-last-run"
+NOW="$(date +%s)"
+LAST="$(cat "$LAST_RUN_FILE" 2>/dev/null || echo 0)"
+# 60s slack so launchd firing a few seconds early doesn't skip a whole tick.
+if (( NOW - LAST < INTERVAL_MIN * 60 - 60 )); then
+  exit 0
+fi
+echo "$NOW" > "$LAST_RUN_FILE"
+
 CRON_SECRET="$(grep '^CRON_SECRET=' "$ENV_FILE" | cut -d= -f2-)"
 if [[ -n "$CRON_SECRET" ]]; then
   echo "[$(date)] Triggering Gmail sync..."

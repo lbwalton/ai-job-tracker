@@ -11,16 +11,20 @@ interface Settings {
   gmailConnected: boolean;
   extensionToken: string;
   appUrl: string;
+  syncIntervalMinutes: number;
 }
 
 function SettingsInner() {
   const params = useSearchParams();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [interval, setIntervalMin] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    setSettings(await api<Settings>("/api/settings"));
+    const s = await api<Settings>("/api/settings");
+    setSettings(s);
+    setIntervalMin(String(s.syncIntervalMinutes));
   }, []);
 
   useEffect(() => {
@@ -35,6 +39,20 @@ function SettingsInner() {
     await api("/api/gmail/sync", { method: "DELETE" });
     setNotice({ kind: "ok", text: "Gmail disconnected." });
     load();
+  }
+
+  async function saveSyncInterval() {
+    const minutes = Number(interval);
+    if (!Number.isFinite(minutes)) return;
+    const res = await api<{ syncIntervalMinutes: number }>("/api/settings", {
+      method: "POST",
+      json: { action: "setSyncInterval", minutes },
+    });
+    setIntervalMin(String(res.syncIntervalMinutes));
+    setNotice({
+      kind: "ok",
+      text: `Auto-sync interval set to ${res.syncIntervalMinutes} minutes.`,
+    });
   }
 
   async function regenerateToken() {
@@ -100,16 +118,38 @@ function SettingsInner() {
             (read-only Gmail scope).
           </p>
         ) : settings.gmailConnected ? (
-          <div className="row">
-            <span className="muted">
-              Connected. Emails sync on demand (Dashboard → Sync Gmail) or on a schedule when
-              deployed.
-            </span>
-            <div className="spacer" />
-            <button className="btn danger" onClick={disconnectGmail}>
-              Disconnect
-            </button>
-          </div>
+          <>
+            <div className="row">
+              <span className="muted">
+                Connected. Emails sync on demand (Dashboard → Sync Gmail) or on the schedule
+                below.
+              </span>
+              <div className="spacer" />
+              <button className="btn danger" onClick={disconnectGmail}>
+                Disconnect
+              </button>
+            </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <div className="field">
+                <label>Auto-sync interval (minutes, 5–720)</label>
+                <input
+                  type="number"
+                  min={5}
+                  max={720}
+                  value={interval}
+                  onChange={(e) => setIntervalMin(e.target.value)}
+                  style={{ width: 120 }}
+                />
+              </div>
+              <button className="btn" onClick={saveSyncInterval} style={{ alignSelf: "end" }}>
+                Save
+              </button>
+            </div>
+            <p className="muted" style={{ marginBottom: 0 }}>
+              Applies to any scheduled caller (launchd/cron) that reads this setting — no
+              reload needed.
+            </p>
+          </>
         ) : (
           <a className="btn primary" href="/api/gmail/auth">
             Connect Gmail

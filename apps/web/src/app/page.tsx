@@ -20,6 +20,21 @@ function daysSince(date: string | null): string {
   return days < 0 ? "—" : `${days}d`;
 }
 
+function monogram(company: string): string {
+  const words = company.replace(/\(.*\)/, "").trim().split(/\s+/);
+  return words.length > 1
+    ? (words[0][0] + words[1][0]).toUpperCase()
+    : company.slice(0, 2).replace(/^(.)(.)/, (_, a, b) => a.toUpperCase() + b.toLowerCase());
+}
+
+const RAIL_STAGES = [
+  { key: "Saved", label: "SAVED" },
+  { key: "Applied", label: "APPLIED" },
+  { key: "Assessment", label: "ASSESS" },
+  { key: "Interview", label: "INTVW" },
+  { key: "Offer", label: "OFFER" },
+] as const;
+
 export default function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState("");
@@ -47,13 +62,9 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const by = (s: string) => jobs.filter((j) => j.status === s).length;
-    return {
-      total: jobs.length,
-      applied: by("Applied"),
-      interview: by("Interview") + by("Assessment"),
-      offer: by("Offer"),
-      rejected: by("Rejected"),
-    };
+    const counts = Object.fromEntries(RAIL_STAGES.map((s) => [s.key, by(s.key)]));
+    const closed = by("Rejected") + by("Withdrawn");
+    return { counts, closed, inPlay: jobs.length - closed };
   }, [jobs]);
 
   function toggleSort(key: string) {
@@ -110,25 +121,42 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 12 }}>
-        <h1 style={{ margin: 0 }}>Applications</h1>
+      <div className="row" style={{ marginBottom: 4 }}>
+        <div className="hero">
+          <div className="eyebrow">Pipeline</div>
+          <div className="big">
+            {stats.inPlay} in play
+          </div>
+        </div>
         <div className="spacer" />
         <button className="btn" onClick={syncNow} disabled={syncing}>
           {syncing ? "Syncing…" : "Sync Gmail"}
         </button>
-        <Link href="/add" className="btn primary" style={{ display: "inline-block" }}>
+        <Link href="/add" className="btn primary hide-sm" style={{ display: "inline-block" }}>
           + Add Job
         </Link>
       </div>
 
       {notice && <div className="notice ok">{notice}</div>}
 
-      <div className="stats">
-        <div className="stat"><div className="num">{stats.total}</div><div className="label">Tracked</div></div>
-        <div className="stat"><div className="num">{stats.applied}</div><div className="label">Applied</div></div>
-        <div className="stat"><div className="num">{stats.interview}</div><div className="label">In Process</div></div>
-        <div className="stat"><div className="num">{stats.offer}</div><div className="label">Offers</div></div>
-        <div className="stat"><div className="num">{stats.rejected}</div><div className="label">Rejected</div></div>
+      <div className="rail">
+        <div className="track">
+          {RAIL_STAGES.map((s, i) => (
+            <span key={s.key} style={{ display: "contents" }}>
+              {i > 0 && <span className="seg" />}
+              <span
+                className={`node ${
+                  stats.counts[s.key] > 0 ? "lit" : "zero"
+                }`}
+              >
+                <span className="ct">{stats.counts[s.key]}</span>
+                <span className="pip" />
+                <span className="nm">{s.label}</span>
+              </span>
+            </span>
+          ))}
+        </div>
+        {stats.closed > 0 && <div className="closed">+{stats.closed} CLOSED</div>}
       </div>
 
       <div className="toolbar">
@@ -137,7 +165,7 @@ export default function Dashboard() {
           placeholder="Search company, title, location…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 220 }}
+          style={{ flex: 1, minWidth: 150 }}
         />
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All statuses</option>
@@ -169,7 +197,49 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="table-wrap">
+      <div className="jobcards">
+        {jobs.map((j) => (
+          <div className="jobcard" key={j.id}>
+            <Link href={`/jobs/${j.id}`} className="mono-tile">
+              {monogram(j.company)}
+            </Link>
+            <Link href={`/jobs/${j.id}`} style={{ minWidth: 0 }}>
+              <div className="co">{j.company}</div>
+              <div className="role">{j.jobTitle}</div>
+              <div className="meta">
+                {(j.location ?? "—").toUpperCase()}
+                {j.salaryRange ? (
+                  <>
+                    {" "}
+                    · <b>{j.salaryRange.replace(/\(.*\)/, "").trim()}</b>
+                  </>
+                ) : null}{" "}
+                · {daysSince(j.dateApplied ?? j.dateAdded)}
+              </div>
+            </Link>
+            <select
+              value={j.status}
+              onChange={(e) => setJobStatus(j.id, e.target.value)}
+              className={`stamp ${j.status}`}
+              aria-label={`Status for ${j.company}`}
+            >
+              {JOB_STATUSES.includes(j.status as (typeof JOB_STATUSES)[number]) ? null : (
+                <option>{j.status}</option>
+              )}
+              {JOB_STATUSES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+        {!jobs.length && (
+          <div className="card muted" style={{ textAlign: "center" }}>
+            No applications yet — tap + to add your first one.
+          </div>
+        )}
+      </div>
+
+      <div className="table-wrap jobs-table">
         <table>
           <thead>
             <tr>
@@ -204,7 +274,7 @@ export default function Dashboard() {
                   <Link href={`/jobs/${j.id}`}>{j.company}</Link>
                 </td>
                 <td className="wrap">{j.jobTitle}</td>
-                <td>{j.location ?? "—"}</td>
+                <td className="wrap">{j.location ?? "—"}</td>
                 <td>{j.salaryRange ?? "—"}</td>
                 <td>{j.dateAdded}</td>
                 <td>

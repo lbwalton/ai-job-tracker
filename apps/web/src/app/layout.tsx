@@ -1,42 +1,34 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Syne, Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Nav } from "./nav";
+
+const syne = Syne({ subsets: ["latin"], weight: ["700", "800"], variable: "--font-display" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "JobTrackr",
   description: "AI-powered job application tracker",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "JobTrackr" },
 };
 
 export const viewport = {
-  themeColor: "#2f6fed",
+  themeColor: "#16241E",
+  viewportFit: "cover",
 };
-
-const NAV = [
-  { href: "/", label: "Dashboard" },
-  { href: "/add", label: "Add Job" },
-  { href: "/inbox", label: "Email Inbox" },
-  { href: "/profile", label: "Autofill Profile" },
-  { href: "/settings", label: "Settings" },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <header className="topbar">
-          <Link href="/" className="brand">
-            Job<span>Trackr</span>
-          </Link>
-          <nav>
-            {NAV.map((item) => (
-              <Link key={item.href} href={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </header>
+      <body className={`${syne.variable} ${inter.variable} ${geistMono.variable}`}>
+        <Nav />
         <main className="container">{children}</main>
       </body>
     </html>

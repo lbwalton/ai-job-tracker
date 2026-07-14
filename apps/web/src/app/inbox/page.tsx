@@ -80,37 +80,41 @@ export default function Inbox() {
         <>
           <h2>Needs review ({pending.length})</h2>
           {pending.map((e) => (
-            <div className="card" key={e.id}>
-              <div className="row">
-                <strong>{e.subject || "(no subject)"}</strong>
-                <span className="badge">{e.category.replace(/_/g, " ")}</span>
-                <div className="spacer" />
-                <span className="muted">{new Date(e.receivedAt).toLocaleDateString()}</span>
+            <div className="mailcard" key={e.id}>
+              <div className="top">
+                <span className="cls">{e.category.replace(/_/g, " ")}</span>
+                <span className="when">{new Date(e.receivedAt).toLocaleDateString()}</span>
               </div>
-              <div className="muted">{e.fromAddress}</div>
-              <p style={{ margin: "6px 0" }}>{e.summary}</p>
+              <div className="subj">{e.subject || "(no subject)"}</div>
+              <div className="from">{e.fromAddress}</div>
+              <p className="sum">{e.summary}</p>
               {e.jobId ? (
-                <div className="row">
-                  <span>
-                    Suggest <span className={`badge ${e.suggestedStatus}`}>{e.suggestedStatus}</span>{" "}
-                    for <Link href={`/jobs/${e.jobId}`}>{e.jobCompany} — {e.jobJobTitle}</Link>
-                  </span>
-                  <div className="spacer" />
-                  <button className="btn small primary" onClick={() => review(e.id, "accept")}>
-                    Apply
-                  </button>
-                  <button className="btn small" onClick={() => review(e.id, "dismiss")}>
-                    Dismiss
-                  </button>
-                </div>
+                <>
+                  <div className="suggest">
+                    Suggests <span className={`badge ${e.suggestedStatus}`}>{e.suggestedStatus}</span>{" "}
+                    for{" "}
+                    <Link href={`/jobs/${e.jobId}`}>
+                      {e.jobCompany} — {e.jobJobTitle}
+                    </Link>
+                  </div>
+                  <div className="acts">
+                    <button className="btn primary" onClick={() => review(e.id, "accept")}>
+                      Apply
+                    </button>
+                    <button className="btn" onClick={() => review(e.id, "dismiss")}>
+                      Dismiss
+                    </button>
+                  </div>
+                </>
               ) : (
-                <div className="row">
-                  <span className="muted">Not matched to a tracked application.</span>
-                  <div className="spacer" />
-                  <button className="btn small" onClick={() => review(e.id, "dismiss")}>
-                    Dismiss
-                  </button>
-                </div>
+                <>
+                  <div className="suggest muted">Not matched to a tracked application.</div>
+                  <div className="acts">
+                    <button className="btn" onClick={() => review(e.id, "dismiss")}>
+                      Dismiss
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           ))}

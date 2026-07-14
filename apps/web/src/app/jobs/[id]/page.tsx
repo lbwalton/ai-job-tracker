@@ -76,7 +76,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
         <h1 style={{ margin: 0 }}>
           {job.company} — {job.jobTitle}
         </h1>
-        <span className={`badge ${job.status}`}>{job.status}</span>
+        <span className={`stamp ${job.status}`}>{job.status}</span>
         <div className="spacer" />
         <button className="btn danger" onClick={remove}>
           Delete

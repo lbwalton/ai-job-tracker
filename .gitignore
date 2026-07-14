@@ -96,3 +96,6 @@ next-env.d.ts
 .env*.local
 apps/web/data/
 *.tsbuildinfo
+
+# v1 config exports (contain API keys)
+job_tracker_config_*.json

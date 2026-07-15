@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { JOB_STATUSES, type Job } from "@jobtrackr/core";
 import { api } from "@/lib/client";
+import { Cols, Resizer, useColWidths } from "@/lib/col-resize";
 
 const COLUMNS: Array<{ key: string; label: string }> = [
   { key: "company", label: "Company" },
@@ -13,6 +14,9 @@ const COLUMNS: Array<{ key: string; label: string }> = [
   { key: "dateAdded", label: "Added" },
   { key: "status", label: "Status" },
 ];
+
+/* [checkbox, company, position, location, salary, added, status, days] — 0 = flexible */
+const COL_DEFAULTS = [40, 150, 0, 160, 160, 122, 136, 56];
 
 function daysSince(date: string | null): string {
   if (!date) return "—";
@@ -44,6 +48,7 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const { widths, startResize, resetCol } = useColWidths("cols:jobs", COL_DEFAULTS);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -240,7 +245,8 @@ export default function Dashboard() {
       </div>
 
       <div className="table-wrap jobs-table">
-        <table>
+        <table className="fixed">
+          <Cols widths={widths} />
           <thead>
             <tr>
               <th style={{ cursor: "default" }}>
@@ -251,10 +257,12 @@ export default function Dashboard() {
                     setSelected(e.target.checked ? new Set(jobs.map((j) => j.id)) : new Set())
                   }
                 />
+                <Resizer i={0} startResize={startResize} resetCol={resetCol} />
               </th>
-              {COLUMNS.map((c) => (
+              {COLUMNS.map((c, ci) => (
                 <th key={c.key} onClick={() => toggleSort(c.key)}>
                   {c.label} {sort === c.key ? (dir === "asc" ? "↑" : "↓") : ""}
+                  <Resizer i={ci + 1} startResize={startResize} resetCol={resetCol} />
                 </th>
               ))}
               <th style={{ cursor: "default" }}>Days</th>
@@ -273,9 +281,9 @@ export default function Dashboard() {
                 <td>
                   <Link href={`/jobs/${j.id}`}>{j.company}</Link>
                 </td>
-                <td className="wrap">{j.jobTitle}</td>
-                <td className="wrap">{j.location ?? "—"}</td>
-                <td>{j.salaryRange ?? "—"}</td>
+                <td title={j.jobTitle}>{j.jobTitle}</td>
+                <td title={j.location ?? undefined}>{j.location ?? "—"}</td>
+                <td title={j.salaryRange ?? undefined}>{j.salaryRange ?? "—"}</td>
                 <td>{j.dateAdded}</td>
                 <td>
                   <select

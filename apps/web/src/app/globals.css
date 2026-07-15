@@ -394,6 +394,34 @@ input[type="checkbox"] { accent-color: var(--accent); width: 17px; height: 17px;
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td.wrap { white-space: normal; }
+
+/* fixed-layout table: always fits the view; cells truncate, never scroll */
+table.fixed { table-layout: fixed; min-width: 660px; }
+table.fixed th, table.fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+table.fixed th { position: relative; }
+.col-resize {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 11px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+.col-resize::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  top: 22%;
+  height: 56%;
+  width: 1px;
+  background: var(--line-hi);
+}
+.col-resize:hover::after { background: var(--accent); width: 2px; }
 th {
   font-family: var(--font-mono), monospace;
   font-size: 11px;

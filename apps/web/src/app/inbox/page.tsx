@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
+import { Cols, Resizer, useColWidths } from "@/lib/col-resize";
+
+/* [received, from, subject, category, application] — 0 = flexible */
+const COL_DEFAULTS = [104, 190, 0, 190, 180];
 
 interface InboxEmail {
   id: number;
@@ -23,6 +27,7 @@ export default function Inbox() {
   const [emails, setEmails] = useState<InboxEmail[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const { widths, startResize, resetCol } = useColWidths("cols:emails", COL_DEFAULTS);
 
   const load = useCallback(async () => {
     const data = await api<{ emails: InboxEmail[] }>("/api/emails");
@@ -123,22 +128,26 @@ export default function Inbox() {
 
       <h2>All job-related emails ({emails.length})</h2>
       <div className="table-wrap">
-        <table>
+        <table className="fixed">
+          <Cols widths={widths} />
           <thead>
             <tr>
-              <th>Received</th>
-              <th>From</th>
-              <th>Subject</th>
-              <th>Category</th>
-              <th>Application</th>
+              {["Received", "From", "Subject", "Category", "Application"].map((label, i) => (
+                <th key={label} style={{ cursor: "default" }}>
+                  {label}
+                  <Resizer i={i} startResize={startResize} resetCol={resetCol} />
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {emails.map((e) => (
               <tr key={e.id}>
                 <td className="muted">{new Date(e.receivedAt).toLocaleDateString()}</td>
-                <td>{e.fromAddress.replace(/<.*>/, "").trim() || e.fromAddress}</td>
-                <td className="wrap">{e.subject}</td>
+                <td title={e.fromAddress}>
+                  {e.fromAddress.replace(/<.*>/, "").trim() || e.fromAddress}
+                </td>
+                <td title={e.subject}>{e.subject}</td>
                 <td>
                   <span className="badge">{e.category.replace(/_/g, " ")}</span>
                 </td>

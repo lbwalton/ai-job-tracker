@@ -16,7 +16,7 @@ const COLUMNS: Array<{ key: string; label: string }> = [
 ];
 
 /* [checkbox, company, position, location, salary, added, status, days] — 0 = flexible */
-const COL_DEFAULTS = [40, 150, 0, 160, 160, 122, 136, 56];
+const COL_DEFAULTS = [40, 150, 0, 160, 160, 122, 136, 68];
 
 function daysSince(date: string | null): string {
   if (!date) return "—";
@@ -289,8 +289,8 @@ export default function Dashboard() {
                   <select
                     value={j.status}
                     onChange={(e) => setJobStatus(j.id, e.target.value)}
-                    className={`badge ${j.status}`}
-                    style={{ border: "none", padding: "2px 8px" }}
+                    className={`stamp ${j.status}`}
+                    aria-label={`Status for ${j.company}`}
                   >
                     {JOB_STATUSES.includes(j.status as (typeof JOB_STATUSES)[number]) ? null : (
                       <option>{j.status}</option>

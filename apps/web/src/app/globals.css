@@ -455,8 +455,8 @@ td a:hover { color: var(--accent); }
 .badge.Offer { color: var(--accent); border-color: rgba(249, 115, 22, 0.45); }
 .badge.Rejected, .badge.Withdrawn { color: var(--slate); }
 
-/* status select inside the table keeps the stamp look */
-select.badge { appearance: none; -webkit-appearance: none; cursor: pointer; font-size: 12px; }
+/* in dense table rows the stamp sits straight — rotation is for cards/detail */
+table .stamp { transform: none; }
 
 /* ---------- inbox mail cards ---------- */
 .mailcard {

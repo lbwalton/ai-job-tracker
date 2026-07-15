@@ -5,8 +5,8 @@ import Link from "next/link";
 import { api } from "@/lib/client";
 import { Cols, Resizer, useColWidths } from "@/lib/col-resize";
 
-/* [received, from, subject, category, application] — 0 = flexible */
-const COL_DEFAULTS = [104, 190, 0, 190, 180];
+/* [received, from, subject, category, application, exclude] — 0 = flexible */
+const COL_DEFAULTS = [104, 190, 0, 190, 180, 52];
 
 interface InboxEmail {
   id: number;
@@ -58,7 +58,7 @@ export default function Inbox() {
     }
   }
 
-  async function review(emailId: number, action: "accept" | "dismiss") {
+  async function review(emailId: number, action: "accept" | "dismiss" | "exclude") {
     await api("/api/emails", { method: "PATCH", json: { emailId, action } });
     load();
   }
@@ -138,6 +138,7 @@ export default function Inbox() {
                   <Resizer i={i} startResize={startResize} resetCol={resetCol} />
                 </th>
               ))}
+              <th style={{ cursor: "default" }} aria-label="Remove" />
             </tr>
           </thead>
           <tbody>
@@ -158,11 +159,21 @@ export default function Inbox() {
                     <span className="muted">—</span>
                   )}
                 </td>
+                <td>
+                  <button
+                    className="exclude"
+                    title="Not job-related — remove from this list"
+                    aria-label={`Mark "${e.subject}" as not job-related`}
+                    onClick={() => review(e.id, "exclude")}
+                  >
+                    ✕
+                  </button>
+                </td>
               </tr>
             ))}
             {!emails.length && (
               <tr>
-                <td colSpan={5} className="muted" style={{ textAlign: "center", padding: 30 }}>
+                <td colSpan={6} className="muted" style={{ textAlign: "center", padding: 30 }}>
                   Nothing yet — connect Gmail in Settings, then sync.
                 </td>
               </tr>

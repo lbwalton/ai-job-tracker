@@ -458,6 +458,21 @@ td a:hover { color: var(--accent); }
 /* in dense table rows the stamp sits straight — rotation is for cards/detail */
 table .stamp { transform: none; }
 
+/* the ✕ that marks an email as not job-related */
+button.exclude {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--slate);
+  cursor: pointer;
+}
+button.exclude:hover { color: var(--danger); border-color: rgba(217, 87, 74, 0.45); }
+
 /* ---------- inbox mail cards ---------- */
 .mailcard {
   background: var(--surface);

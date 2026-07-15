@@ -14,11 +14,11 @@ export async function GET() {
   return NextResponse.json({ emails });
 }
 
-/** Accept or dismiss a suggested status change coming from an email. */
+/** Accept/dismiss a suggested status change, or exclude a misclassified email. */
 export async function PATCH(req: NextRequest) {
   const { emailId, action } = (await req.json()) as {
     emailId: number;
-    action: "accept" | "dismiss";
+    action: "accept" | "dismiss" | "exclude";
   };
   const db = getDb();
   const email = db.prepare("SELECT * FROM emails WHERE id = ?").get(emailId) as
@@ -26,7 +26,13 @@ export async function PATCH(req: NextRequest) {
     | undefined;
   if (!email) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (action === "accept" && email.jobId && email.suggestedStatus) {
+  if (action === "exclude") {
+    // False positive: hide it everywhere and unlink from any application.
+    // Sync remembers the gmailId, so it will not be re-imported.
+    db.prepare(
+      "UPDATE emails SET category = 'not_job_related', suggestedStatus = NULL, jobId = NULL WHERE id = ?",
+    ).run(emailId);
+  } else if (action === "accept" && email.jobId && email.suggestedStatus) {
     updateJob(email.jobId, { status: email.suggestedStatus }, "gmail-review");
     db.prepare("UPDATE emails SET statusApplied = 1 WHERE id = ?").run(emailId);
   } else {

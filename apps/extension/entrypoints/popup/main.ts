@@ -1,7 +1,7 @@
 import { browser } from "#imports";
 import { apiFetch, getSettings, saveSettings } from "../../lib/settings";
 import type { ExtractedPage } from "../../lib/extract";
-import type { AutofillProfile, AutofillResult } from "../../lib/autofill";
+import type { AutofillProfile, AutofillResult, ResumePayload } from "../../lib/autofill";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -29,6 +29,29 @@ async function extract(tabId: number): Promise<ExtractedPage | null> {
   }
 }
 
+/** The stored resume as a message-safe payload; null when none is uploaded. */
+async function fetchResume(): Promise<ResumePayload | null> {
+  try {
+    const { serverUrl, token } = await getSettings();
+    const res = await fetch(`${serverUrl}/api/extension/resume`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 0x8000) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    }
+    return {
+      name: decodeURIComponent(res.headers.get("x-resume-name") ?? "resume.pdf"),
+      mime: res.headers.get("content-type") ?? "application/pdf",
+      b64: btoa(bin),
+    };
+  } catch {
+    return null; // resume attach is best-effort — autofill proceeds without it
+  }
+}
+
 async function testConnection(): Promise<boolean> {
   try {
     await apiFetch("/api/extension/ping");
@@ -45,6 +68,7 @@ async function init() {
   $<HTMLInputElement>("serverUrl").value = settings.serverUrl;
   $<HTMLInputElement>("token").value = settings.token;
   $<HTMLAnchorElement>("openApp").href = settings.serverUrl;
+  $<HTMLAnchorElement>("getResume").href = `${settings.serverUrl}/api/profile/resume?download`;
 
   const connected = await testConnection();
   if (!connected) {
@@ -116,15 +140,26 @@ autofillBtn.addEventListener("click", async () => {
   try {
     const tab = await activeTab();
     if (!tab?.id) throw new Error("No active tab");
-    const { profile } = await apiFetch<{ profile: AutofillProfile }>("/api/extension/profile");
+    const [{ profile }, resume] = await Promise.all([
+      apiFetch<{ profile: AutofillProfile }>("/api/extension/profile"),
+      fetchResume(),
+    ]);
     const result = (await browser.tabs.sendMessage(tab.id, {
       type: "AUTOFILL",
       profile,
+      resume: resume ?? undefined,
     })) as AutofillResult;
+    const resumeNote = result.resumeAttached
+      ? " Resume attached —"
+      : resume
+        ? " Attach your resume (this form's upload widget refused it), then"
+        : " Attach your resume, then";
     setStatus(
-      result.filled ? "ok" : "err",
-      result.filled
-        ? `Filled ${result.filled} field(s). Review, attach your resume, then submit.`
+      result.filled || result.resumeAttached
+        ? "ok"
+        : "err",
+      result.filled || result.resumeAttached
+        ? `Filled ${result.filled} field(s).${resumeNote} review and submit.`
         : "No fillable fields matched — fill your profile in the web app first?",
     );
   } catch (err) {

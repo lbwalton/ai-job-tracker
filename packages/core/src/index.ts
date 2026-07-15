@@ -223,6 +223,11 @@ export const profileSchema = z.object({
   desiredSalary: z.string().default(""),
   noticePeriod: z.string().default(""),
   coverLetterTemplate: z.string().default(""),
+  /**
+   * Free-form career knowledge: pasted resume text, revenue managed, team
+   * size, key wins. Source material for AI-drafted answers.
+   */
+  background: z.string().default(""),
   /** Free-form Q&A pairs for recurring application questions. */
   customAnswers: z
     .array(z.object({ question: z.string(), answer: z.string() }))

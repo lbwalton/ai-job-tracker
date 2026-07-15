@@ -35,6 +35,11 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
+  const [draftQ, setDraftQ] = useState("Why do you want to work here?");
+  const [draftA, setDraftA] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftErr, setDraftErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const data = await api<{ job: Job; emails: EmailRecord[]; history: HistoryRow[] }>(
@@ -66,6 +71,29 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
     if (!confirm("Delete this application?")) return;
     await api(`/api/jobs/${id}`, { method: "DELETE" });
     router.push("/");
+  }
+
+  async function draft() {
+    if (!draftQ.trim()) return;
+    setDrafting(true);
+    setDraftErr(null);
+    try {
+      const { answer } = await api<{ answer: string }>("/api/draft", {
+        method: "POST",
+        json: { question: draftQ, jobId: Number(id) },
+      });
+      setDraftA(answer);
+    } catch (err) {
+      setDraftErr(err instanceof Error ? err.message : "Draft failed");
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  async function copyDraft() {
+    await navigator.clipboard.writeText(draftA);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   if (!job) return <p className="muted">Loading…</p>;
@@ -135,6 +163,42 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
             </a>
           )}
         </div>
+      </div>
+
+      <h2>Draft an Answer</h2>
+      <p className="muted">
+        Writes a first-draft answer for this specific application, from your Background (Autofill
+        Profile) plus this job&apos;s description. Edit it into your own words before using it.
+      </p>
+      <div className="card">
+        {draftErr && <div className="notice err">{draftErr}</div>}
+        <div className="row">
+          <input
+            type="text"
+            placeholder={`e.g. Why do you want to work at ${job.company}?`}
+            style={{ flex: 1, minWidth: 200 }}
+            value={draftQ}
+            onChange={(e) => setDraftQ(e.target.value)}
+          />
+          <button className="btn primary" onClick={draft} disabled={drafting || !draftQ.trim()}>
+            {drafting ? "Drafting…" : "Draft with AI"}
+          </button>
+        </div>
+        {draftA && (
+          <>
+            <textarea
+              rows={6}
+              style={{ marginTop: 12 }}
+              value={draftA}
+              onChange={(e) => setDraftA(e.target.value)}
+            />
+            <div className="row" style={{ marginTop: 10 }}>
+              <button className="btn" onClick={copyDraft}>
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <h2>Emails ({emails.length})</h2>

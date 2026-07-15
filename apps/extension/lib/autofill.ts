@@ -25,10 +25,18 @@ export interface AutofillProfile {
   customAnswers: Array<{ question: string; answer: string }>;
 }
 
+export interface ResumePayload {
+  name: string;
+  mime: string;
+  /** base64-encoded file bytes (message args must be JSON-serializable) */
+  b64: string;
+}
+
 export interface AutofillResult {
   filled: number;
   skipped: number;
   fields: string[];
+  resumeAttached: boolean;
 }
 
 type Fillable = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -116,10 +124,36 @@ function fillSelect(el: HTMLSelectElement, desired: string): boolean {
   return false;
 }
 
-export function autofillPage(profile: AutofillProfile): AutofillResult {
+/** Attach the stored resume to empty file inputs that ask for a resume/CV. */
+function attachResume(resume: ResumePayload): boolean {
+  const bytes = Uint8Array.from(atob(resume.b64), (c) => c.charCodeAt(0));
+  const file = new File([bytes], resume.name, { type: resume.mime });
+  let attached = false;
+
+  for (const el of document.querySelectorAll<HTMLInputElement>("input[type=file]")) {
+    if (el.files?.length) continue; // never replace a file the user chose
+    const desc = fieldDescriptor(el);
+    if (!/resume|\bcv\b|curriculum/i.test(desc)) continue;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      el.files = dt.files;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      attached = true;
+    } catch {
+      /* some widgets refuse programmatic files — user attaches manually */
+    }
+  }
+  return attached;
+}
+
+export function autofillPage(profile: AutofillProfile, resume?: ResumePayload): AutofillResult {
   const rules = buildRules(profile);
   const custom = profile.customAnswers.filter((qa) => qa.question.trim() && qa.answer.trim());
-  const result: AutofillResult = { filled: 0, skipped: 0, fields: [] };
+  const result: AutofillResult = { filled: 0, skipped: 0, fields: [], resumeAttached: false };
+
+  if (resume) result.resumeAttached = attachResume(resume);
 
   const elements = document.querySelectorAll<Fillable>(
     "input:not([type=hidden]):not([type=file]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea, select",

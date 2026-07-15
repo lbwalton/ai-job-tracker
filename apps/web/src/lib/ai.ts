@@ -6,6 +6,7 @@ import {
   parsedJobSchema,
   type ClassifiedEmail,
   type ParsedJob,
+  type Profile,
 } from "@jobtrackr/core";
 
 // Haiku keeps parsing/classification at fractions of a cent per call; override
@@ -55,6 +56,69 @@ export async function parseJobPosting(content: string): Promise<ParsedJob> {
     PARSED_JOB_JSON_SCHEMA,
   );
   return parsedJobSchema.parse(raw);
+}
+
+export async function draftAnswer(input: {
+  question: string;
+  profile: Profile;
+  job?: {
+    company: string;
+    jobTitle: string;
+    description: string | null;
+    skills: string | null;
+  } | null;
+}): Promise<string> {
+  const { question, profile, job } = input;
+  const facts = [
+    profile.currentTitle && profile.currentCompany
+      ? `Current role: ${profile.currentTitle} at ${profile.currentCompany}`
+      : "",
+    profile.yearsOfExperience ? `Years of experience: ${profile.yearsOfExperience}` : "",
+    profile.location ? `Location: ${profile.location}` : "",
+    profile.background ? `Background:\n${profile.background.slice(0, 8000)}` : "",
+    profile.coverLetterTemplate
+      ? `Cover letter template (voice/tone reference):\n${profile.coverLetterTemplate.slice(0, 2000)}`
+      : "",
+    profile.customAnswers.length
+      ? `Existing stock answers:\n${profile.customAnswers
+          .filter((qa) => qa.question && qa.answer)
+          .map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`)
+          .join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const response = await client().messages.create({
+    model: MODEL,
+    max_tokens: 700,
+    system: [
+      "You draft job-application answers in the applicant's first-person voice.",
+      "Use ONLY the facts provided — never invent numbers, employers, dates, or achievements.",
+      "If a fact the answer needs is missing, write a [bracketed placeholder] the applicant fills in.",
+      "Confident and specific, not sycophantic. No em-dashes. 80-160 words unless the question clearly wants a one-liner.",
+      "Return only the answer text — no preamble, no quotes.",
+    ].join(" "),
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Application question: ${question}`,
+          job
+            ? `The application is for: ${job.jobTitle} at ${job.company}.` +
+              (job.description ? `\nAbout the role: ${job.description.slice(0, 2000)}` : "") +
+              (job.skills ? `\nSkills they want: ${job.skills}` : "")
+            : "No specific company context — write a reusable stock answer.",
+          `Applicant facts:\n${facts || "(profile is empty — use placeholders)"}`,
+        ].join("\n\n"),
+      },
+    ],
+  });
+
+  const text = response.content.find((b) => b.type === "text");
+  if (!text || text.type !== "text") throw new Error("AI returned no text content");
+  // House style: no em-dashes in drafted answers.
+  return text.text.trim().replace(/\s*—\s*/g, ", ");
 }
 
 export async function classifyEmail(input: {
